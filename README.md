@@ -130,5 +130,5 @@ docker build -t zomato-app .
 # Run container
 docker run -it -p 3000:3000 zomato-app
 ```
-portfolio recruiters?
+Access app at: http://localhost:3000
 
