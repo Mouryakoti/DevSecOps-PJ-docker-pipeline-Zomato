@@ -11,7 +11,7 @@ pipeline {
         }
         stage('code') {
             steps {
-                git branch: 'main', url: 'https://github.com/Mouryakoti/Zomato-Repo.git'
+                git branch: 'main', url: 'https://github.com/Mouryakoti/DevSecOps-PJ-docker-pipeline-Zomato.git'
             }
         }
         stage('CQA') {
