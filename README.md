@@ -1,71 +1,134 @@
-# Getting Started with Create React App
+# DevSecOps Project – Dockerized React App with Jenkins, SonarQube & Trivy
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This repository contains a **React frontend application** that has been Dockerized and integrated into a **CI/CD pipeline** using **Jenkins**, **SonarQube**, and **Trivy**.
+The project demonstrates **DevSecOps practices** by combining continuous integration, automated code quality analysis, container image scanning, and deployment into a single automated pipeline.
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## 🏗️ Tech Stack
 
-### `npm start`
+* **Frontend:** React.js
+* **CI/CD Tool:** Jenkins (Declarative Pipeline)
+* **Code Quality:** SonarQube
+* **Security Scanning:** Trivy
+* **Containerization:** Docker
+* **Registry:** Docker Hub
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+---
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 📂 Repository Structure
 
-### `npm test`
+```
+.
+├── Dockerfile        # Docker instructions to containerize the React app
+├── Jenkinsfile       # Jenkins declarative pipeline for CI/CD
+├── public/           # React public assets
+├── src/              # React source code
+└── package.json      # React dependencies & scripts
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `npm run build`
+## 🚀 Jenkins Pipeline Workflow
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+The CI/CD pipeline is defined in the `Jenkinsfile`. Below are the pipeline stages:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 1️⃣ **Clean Workspace**
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```groovy
+cleanWs()
+```
 
-### `npm run eject`
+Ensures Jenkins workspace is clean before every run.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### 2️⃣ **Checkout Code**
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```groovy
+git branch: 'main', url: 'https://github.com/Mouryakoti/DevSecOps-PJ-docker-pipeline-Zomato.git'
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Pulls the latest code from the GitHub repo.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### 3️⃣ **Code Quality Analysis (SonarQube)**
 
-## Learn More
+```groovy
+withSonarQubeEnv('mysonar') {
+   sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=zomato"
+}
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+* Runs **SonarQube analysis** on the source code.
+* Checks code quality, bugs, vulnerabilities, and technical debt.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### 4️⃣ **Quality Gate Check**
 
-### Code Splitting
+```groovy
+waitForQualityGate abortPipeline: false, credentialsId: 'sonar-pswd'
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+* Verifies project passes **SonarQube Quality Gates** before proceeding.
 
-### Analyzing the Bundle Size
+### 5️⃣ **Build Docker Image**
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```groovy
+sh 'docker build -t image1 .'
+```
 
-### Making a Progressive Web App
+* Builds a Docker image for the React app.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### 6️⃣ **Security Scan with Trivy**
 
-### Advanced Configuration
+```groovy
+sh 'trivy image image1'
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+* Scans Docker image for **vulnerabilities** (OS & dependencies).
 
-### Deployment
+### 7️⃣ **Tag & Push Docker Image**
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```groovy
+sh 'docker tag image1 mourya09/dockpj:zomato'
+withDockerRegistry(credentialsId: 'docker-hub') {
+   sh 'docker push mourya09/dockpj:zomato'
+}
+```
 
-### `npm run build` fails to minify
+* Tags the image and pushes it to **Docker Hub**.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
-# Zomato-Clone
+### 8️⃣ **Deploy Container**
+
+```groovy
+sh 'docker run -itd --name zomato -p 3000:3000 mourya09/dockpj:zomato'
+```
+
+* Runs the container locally, exposing it on **port 3000**.
+
+---
+
+## 🔒 DevSecOps Highlights
+
+* **Automated Code Quality Check** → via SonarQube.
+* **Security First** → container scanning with Trivy before deployment.
+* **Continuous Integration & Deployment** → Jenkins pipeline automates everything from checkout to deploy.
+
+---
+
+## ⚙️ How to Run Locally
+
+### Prerequisites
+
+* Docker installed
+* Node.js installed (if running without Docker)
+* Jenkins, SonarQube, and Trivy configured
+
+### Run with Docker
+
+```bash
+# Build image
+docker build -t zomato-app .
+
+# Run container
+docker run -it -p 3000:3000 zomato-app
+```
+portfolio recruiters?
+
