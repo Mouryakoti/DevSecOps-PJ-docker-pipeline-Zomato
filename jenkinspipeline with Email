@@ -1,0 +1,68 @@
+pipeline {
+    agent any 
+        environment {
+        scannerHome=tool 'mysonar'
+    }
+    stages {
+        stage('CleanWS') {
+            steps {
+                cleanWs()
+            }
+        }
+        stage('code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/Mouryakoti/Zomato-Repo.git'
+            }
+        }
+        stage('CQA') {
+            steps {
+                 withSonarQubeEnv('mysonar') {
+                 sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=zomato"
+                }
+            }
+        }
+        stage('Quality Gates') {
+            steps {
+                 script {
+                     waitForQualityGate abortPipeline: false, credentialsId: 'sonar-pswd' 
+                  }
+             }
+        }
+        stage('build') {
+            steps {
+                sh 'docker build -t image1 .'
+            }
+        }
+        stage('scan') {
+            steps {
+                sh 'trivy image image1'
+            }
+        }
+        stage('tag & push') {
+            steps {
+                sh 'docker tag image1 mourya09/dockpj:zomato'
+            }
+        }
+        stage('push') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker-hub') {
+                    sh 'docker push mourya09/dockpj:zomato'    
+                   }
+               }
+           } 
+       }
+       stage('deploy') {
+           steps {
+               sh 'docker run -itd --name zomato -p 9866:3000  mourya09/dockpj:zomato'
+           }
+       }
+    }  
+     post {
+           always {
+               mail to : 'kotim4learn@gmail.com',
+               subject: 'pipeline status',
+               body:"${currentBuild.currentResult}:* Job ${env.JOB_NAME}\n build ${env.BUILD_NUMBER}\n More info at: ${env.BUILD_URL}"
+          }
+      }
+ }
